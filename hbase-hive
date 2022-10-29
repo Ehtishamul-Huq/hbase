@@ -1,0 +1,72 @@
+# Hbase - Hive Connectivity
+In hbase shell, 
+
+create ‘hbase_sales_order_csv’, ‘ordernumber’,’quantityordered’,’priceeach’,’orderlinenumber’,’sales’,’status’,’qtr_id’,’month_id’,’year_id’,’productline’,’msrp’,’productcode’,’phone’,’city’
+
+In hive,
+
+create external table if not exists hbase_sales_order_csv
+    > (key string,
+    > `ordernumber` int,
+    >   `quantityordered` int,
+    >   `priceeach` float,
+    >   `orderlinenumber` int,
+    >   `sales` float,
+    >   `status` string,
+    >   `qtr_id` int,
+    >   `month_id` int,
+    >   `year_id` int,
+    >   `productline` string,
+    >   `msrp` int,
+    >   `productcode` array<string>,
+    >   `phone` array<string>,
+    >   `city` string)
+    > row format delimited
+    > fields terminated by ','
+    > stored by 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+    > with serdeproperties
+    > ("hbase.columns.mapping"=":key,ordernumber:ordernumber,quantityordered:qua                                                                             ntityordered,priceeach:priceeach,orderlinenumber:orderlinenumber,sales:sales,sta                                                                             tus:status,qtr_id:qtr_id,month_id:month_id,year_id:year_id,productline:productli                                                                             ne,msrp:msrp,productcode:productcode,phone:phone,city:city")
+    > TBLPROPERTIES("hbase.table.name"="hbase_sales_order_csv");
+
+# Create staging table
+
+create external table if not exists hbase_stg_sales_order
+    > (key string,
+    > `ordernumber` int,
+    > `quantityordered` int,
+    > `priceeach` float,
+    > `orderlinenumber` int,
+    > `sales` float,
+    > `status` string,
+    > `qtr_id` int,
+    > `month_id` int,
+    > `year_id` int,
+    > `productline` string,
+    > `msrp` int,
+    > `productcode` array<string>,
+    > `phone` array<string>,
+    > `city` string)
+    > row format delimited
+    > fields terminated by ','
+    > tblproperties("skip.header.line.count"="1")
+    > ;
+
+
+load data local inpath 'file:///home/cloudera/Documents/sales_order_data.csv' into table hbase_stg_sales_order;
+
+select * from hbase_stg_sales_order limit 10;
+
+insert into table hbase_sales_order_csv select * from hbase_stg_sales_order;
+
+select * from hbase_sales_order_csv;
+
+In hbase shell, add data in the hbase table
+
+put ‘hbase_sales_order_csv’, ‘99’, ‘ordernumber:ordernumber’, 99919
+
+scan ‘hbase_sales_order_csv’
+
+in hive,
+select * from hbase_sales_order_csv;
+
+Observe that data added from hbase is present in hive.
